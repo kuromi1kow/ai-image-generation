@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Как AI научился генерировать изображения (фотки:))</title>
+  <meta name="description" content="Асылхан kuromiqo о том, как AI научился создавать изображения: от автоэнкодеров и GAN до диффузионных моделей.">
+  <meta name="author" content="Асылхан kuromiqo">
+  <meta name="theme-color" content="#f7f6f1">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Как AI научился генерировать изображения (фотки:))">
+  <meta property="og:description" content="От автоэнкодеров и GAN до диффузионных моделей. Статья Асылхана kuromiqo.">
+  <meta property="og:url" content="https://kuromi1kow.github.io/ai-image-generation/">
+  <meta property="og:image" content="https://kuromi1kow.github.io/ai-image-generation/assets/diffusion.png">
+  <meta property="og:image:alt" content="На последовательных кадрах фотография носорога постепенно превращается в шум.">
+  <meta property="article:published_time" content="2026-11-16T22:39:02Z">
+  <link rel="canonical" href="https://kuromi1kow.github.io/ai-image-generation/">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#article-body">К тексту статьи</a>
+  <main id="top" class="page">
+    <article>
+      <header class="hero">
+        <div class="hero-meta"><time datetime="2026-11-16T22:39:02Z">16 ноября 2026</time><a href="https://telegra.ph/Kak-AI-nauchilsya-generirovat-izobrazheniya-fotki-11-16">Оригинал в Telegraph <span aria-hidden="true">↗</span></a></div>
+        <h1>Как AI научился генерировать изображения <span>(фотки:))</span></h1>
+        <p class="byline">Асылхан kuromiqo</p>
+      </header>
+      <div class="article-layout">
+        <nav class="contents" aria-label="Оглавление">
+          <p class="contents-label" aria-hidden="true">В статье</p>
+          <ul>
+            <li><a href="#autoencoder" lang="en">Autoencoder</a></li>
+            <li><a href="#vae" lang="en">VAE</a></li>
+            <li><a href="#gan" lang="en">GAN</a></li>
+            <li><a href="#diffusion" lang="en">Diffusion Models</a></li>
+            <li><a href="#references">Источники</a></li>
+          </ul>
+        </nav>
+        <div id="article-body" class="article-body" tabindex="-1">
+          <div class="intro">
+            <p>В принципе, сейчас будет ультра айтишный топик, но, думаю, вам будет интересно. Многие уже примерно понимают, как AI генерирует текст. У языка есть структура, грамматика, слова и закономерности, которые модель изучает во время Training. Причём можно даже придумать собственный язык, собрать Dataset и попробовать научить небольшую Language Model с ним работать. По-моему, это был бы ультраинтересный NLP pet project. Но сегодня я хотел бы поговорить про Image Generation.</p>
+            <p>Вот представьте, с текстом более-менее понятно. Есть последовательности токенов, определённые закономерности, и модель учится предсказывать следующие токены. А что делать с фотографиями? Как научить Neural Network понимать изображения, находить в них закономерности и, самое главное, создавать совершенно новые картинки? Для этого пришлось разрабатывать совершенно другие подходы.</p>
+          </div>
+        <section class="chapter" aria-labelledby="autoencoder">
+          <h2 id="autoencoder" lang="en">Autoencoder</h2>
+          <figure>
+            <a class="figure-image" href="assets/autoencoder.png" aria-label="Открыть схему Autoencoder в полном размере">
+              <img src="assets/autoencoder.png" width="677" height="506" alt="Схема автоэнкодера с входным слоем, слоем сжатого представления и выходным слоем." loading="lazy" decoding="async">
+            </a>
+            <figcaption><a href="https://commons.wikimedia.org/wiki/File:Autoencoder_structure.png">Chervinskii</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a></figcaption>
+          </figure>
+          <p>1980-е. Autoencoder. Ещё в 1980-х исследователи начали активно изучать Autoencoders, нейросети, которые учатся восстанавливать собственные входные данные. Идея довольно простая. Мы подаём фотографию в Neural Network, Encoder сжимает её в компактное представление с меньшей размерностью, которое называется Latent Representation. Между Encoder и Decoder находится Bottleneck, который ограничивает объём передаваемой информации и заставляет модель изучать полезные Features. Затем Decoder пытается восстановить оригинальную фотографию из этого представления. Но тут возникает вопрос: а зачем нам модель, которая просто берёт фотографию и восстанавливает её обратно? Самое интересное не в реконструкции, а в том, что во время Training нейросеть учится находить скрытые закономерности и важные признаки изображений. Кстати, Autoencoders можно использовать и для удаления шума с фотографий, это называется Denoising Autoencoder. Но была проблема. Обычный Autoencoder не гарантировал генерацию абсолютно новых осмысленных фотографий, потому что его Latent Space не обязательно организован для случайного Sampling.</p>
+        </section>
+        <section class="chapter" aria-labelledby="vae">
+          <h2 id="vae" lang="en">VAE</h2>
+          <figure>
+            <a class="figure-image" href="assets/vae.png" aria-label="Открыть схему VAE в полном размере">
+              <img src="assets/vae.png" width="1122" height="484" alt="Схема VAE. Кодировщик предсказывает параметры распределения, из которого выбирают вектор для декодировщика." loading="lazy" decoding="async">
+            </a>
+            <figcaption><a href="https://commons.wikimedia.org/wiki/File:VAE_Basic.png">EugenioTL</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a></figcaption>
+          </figure>
+          <p>Variational Autoencoder (VAE). И вот здесь начинается самое интересное. В декабре 2013 года Diederik Kingma и Max Welling представили работу Auto-Encoding Variational Bayes. Идея заключалась в том, чтобы сделать Latent Representation вероятностным. Вместо того чтобы Encoder просто выдавал фиксированный Latent Vector, он задаёт Probability Distribution, обычно Gaussian Distribution с параметрами Mean и Variance. Мы можем Sample Latent Vector из этого распределения и передать его Decoder. При этом KL Regularization помогает организовать Latent Space так, чтобы можно было генерировать новые изображения из Prior Distribution. И вот теперь у нас не просто реконструкция, а полноценная Generative Model. Конечно, VAE имел свои Limitations. Одна из главных проблем это Blurry Images, то есть сгенерированные фотографии часто получались размытыми. Но даже несмотря на это, сама идея была ультравайбовой. Нейросеть могла изучать Patterns и создавать новые изображения. Кстати, Kingma также является одним из создателей Adam Optimizer вместе с Jimmy Ba. Того самого Optimizer, который использует First и Second Moments градиентов для Adaptive Updates. Но не суть, возвращаемся к фоткам.</p>
+        </section>
+        <section class="chapter" aria-labelledby="gan">
+          <h2 id="gan" lang="en">GAN</h2>
+          <figure>
+            <a class="figure-image" href="assets/gan.svg" aria-label="Открыть схему GAN в полном размере">
+              <img src="assets/gan.svg" width="1021" height="378" alt="Схема GAN. Дискриминатор сравнивает реальные данные с примерами, которые создаёт генератор." loading="lazy" decoding="async">
+            </a>
+            <figcaption><a href="https://commons.wikimedia.org/wiki/File:Generative_Adversarial_Network_illustration.svg">Mtanti</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a></figcaption>
+          </figure>
+          <p>Generative Adversarial Networks (GAN). А вот здесь уже произошло что-то грандиозное. В 2014 году Ian Goodfellow и его коллеги представили GAN. Идея почти как соревнование между двумя Neural Networks. Первая модель, Generator, пытается создавать реалистичные фотографии. Вторая, Discriminator, определяет, настоящая фотография перед ней или сгенерированная. Generator постепенно учится обманывать Discriminator, а Discriminator становится лучше в распознавании Fake Images. За счёт этого GAN научились генерировать очень реалистичные и чёткие изображения. Причём после Training генерация могла быть довольно быстрой, достаточно одного прохода через Generator. В последующие годы появились крутые GAN архитектуры для генерации человеческих лиц. Примерно в эту эпоху, в 2017 году, стал популярным FaceApp, который показал массовой аудитории, насколько реалистично Neural Networks могут изменять лица. Но у GAN были свои проблемы: Training Instability, Mode Collapse и проблемы с Gradients. Обучать две конкурирующие модели оказалось довольно сложно, а иногда Generator начинал создавать слишком похожие изображения.</p>
+        </section>
+        <section class="chapter" aria-labelledby="diffusion">
+          <h2 id="diffusion" lang="en">Diffusion Models</h2>
+          <figure>
+            <a class="figure-image" href="assets/diffusion.png" aria-label="Открыть схему Diffusion Models в полном размере">
+              <img src="assets/diffusion.png" width="1624" height="861" alt="На последовательных кадрах фотография носорога постепенно превращается в шум." loading="lazy" decoding="async">
+            </a>
+            <figcaption><a href="https://commons.wikimedia.org/wiki/File:Example_of_Forward_Diffusion_Models.png">MrAlanKoh · Axel Tschentscher</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a></figcaption>
+          </figure>
+          <p>Diffusion Models. И вот здесь начинается моя любимая часть. В 2015 году Jascha Sohl-Dickstein и его коллеги представили один из фундаментальных подходов к современным Diffusion Models, вдохновлённый неравновесной термодинамикой. Логика была совершенно другой. Представьте, что у нас есть фотография и мы начинаем постепенно добавлять к ней Gaussian Noise. Сначала изображение немного портится, затем становится всё более шумным, пока практически не превращается в Random Noise. Это Forward Diffusion Process. А теперь мы обучаем Neural Network выполнять обратную задачу, постепенно убирать Noise и восстанавливать структуру изображения. Это Reverse Diffusion Process. После обучения модель может начинать не с оригинальной фотографии, а с Random Noise и постепенно превращать его в совершенно новое изображение. То есть нейросеть учится закономерностям данных через процесс Denoising. Но почему уже в 2015 году у нас не было современных AI Image Generators? Потому что между научной идеей и массовым продуктом огромная дистанция. Diffusion Models требовали много вычислений, генерация была медленной, а многие алгоритмические улучшения ещё не существовали.</p>
+          <p>DDPM. В 2020 году Jonathan Ho, Ajay Jain и Pieter Abbeel представили работу Denoising Diffusion Probabilistic Models. Это один из ключевых прорывов современного Image Generation. Исследователи улучшили подход к Training и показали, что Diffusion Models способны генерировать изображения очень высокого качества. А дальше всё начало ускоряться. В 2021 году OpenAI представила первую DALL·E, которая использовала Autoregressive Transformer. А уже в 2022 году появилась DALL·E 2, основанная на Diffusion. Примерно тогда же вышел Stable Diffusion, который сделал Text-to-Image Generation намного доступнее. Теперь человек мог просто написать «A cat wearing a spacesuit on Mars», и модель генерировала совершенно новое изображение по текстовому описанию. Это называется Text Conditioning, когда текст управляет процессом генерации изображения.</p>
+          <p>Конечно, огромную роль сыграл и Hardware. В 2020 году появилась NVIDIA A100, в 2022 представили H100, а H200 анонсировали уже в 2023 году. Но дело было не только в видеокартах. Одновременно улучшались Algorithms, Datasets, Training Methods и архитектуры моделей. Именно сочетание этих факторов сделало современную Image Generation настолько впечатляющей.</p>
+        </section>
+          <div class="conclusion">
+            <p>И вот что мне во всей этой истории нравится больше всего. Мы прошли путь от нейросетей, которые учились сжимать и восстанавливать фотографии, до моделей, способных создавать совершенно новые изображения практически из случайного шума по обычному текстовому описанию. И всё это благодаря десятилетиям исследований в Representation Learning, Probability, Optimization и Deep Learning</p>
+            <aside class="author-note">
+              <p>btw: Я сам это не с первого часа разобрал, если не получилось понять сразу ничего страшного :)</p>
+            </aside>
+          </div>
+          <section class="sources" aria-labelledby="references">
+            <h2 id="references">Источники</h2>
+            <ol lang="en">
+            <li>Kingma, D. P., &amp; Welling, M. (2013). <em><a href="https://arxiv.org/abs/1312.6114">Auto-Encoding Variational Bayes.</a></em></li>
+            <li>Goodfellow, I., et al. (2014). <em><a href="https://arxiv.org/abs/1406.2661">Generative Adversarial Networks.</a></em></li>
+            <li>Sohl-Dickstein, J., et al. (2015). <em><a href="https://arxiv.org/abs/1503.03585">Deep Unsupervised Learning using Nonequilibrium Thermodynamics.</a></em></li>
+            <li>Ho, J., Jain, A., &amp; Abbeel, P. (2020). <em><a href="https://arxiv.org/abs/2006.11239">Denoising Diffusion Probabilistic Models.</a></em></li>
+            <li>Rocca, J. (2022). <em><a href="https://medium.com/data-science/understanding-diffusion-probabilistic-models-dpms-1940329d6048">Understanding Diffusion Probabilistic Models (DPMs).</a></em></li>
+            <li>Prince, S. J. D. (2023). <em><a href="https://github.com/udlbook/udlbook/releases/download/v5.0.3/UnderstandingDeepLearning_02_09_26_C.pdf">Understanding Deep Learning.</a></em> MIT Press. Chapter 18: Diffusion Models (PDF edition, 2026).</li>
+            <li>Dieleman, S. (2022). <em><a href="https://sander.ai/2022/05/26/guidance.html">Guidance: A Cheat Code for Diffusion Models.</a></em></li>
+            </ol>
+            <h3 id="image-credits">Иллюстрации</h3>
+            <ul lang="en" class="credits">
+            <li><a href="https://commons.wikimedia.org/wiki/File:Autoencoder_structure.png">Autoencoder</a>: Chervinskii</li>
+            <li><a href="https://commons.wikimedia.org/wiki/File:VAE_Basic.png">VAE</a>: EugenioTL</li>
+            <li><a href="https://commons.wikimedia.org/wiki/File:Generative_Adversarial_Network_illustration.svg">GAN</a>: Mtanti</li>
+            <li><a href="https://commons.wikimedia.org/wiki/File:Example_of_Forward_Diffusion_Models.png">Diffusion</a>: MrAlanKoh, based on an <a href="https://commons.wikimedia.org/wiki/File:Black_Rhinoceros_During_Sunset_2019-07-23.jpg">original photograph</a> by Axel Tschentscher.</li>
+            </ul>
+            <p class="license" lang="en">Images are licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)</a>.</p>
+          </section>
+        </div>
+      </div>
+    </article>
+    <footer class="footer"><a href="#top">Наверх <span aria-hidden="true">↑</span></a></footer>
+  </main>
+</body>
+</html>
