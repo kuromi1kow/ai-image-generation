@@ -127,6 +127,8 @@ h3 {
   line-height: 1.3;
 }
 
+h3 + p { margin-block-start: .55rem; }
+
 figure { margin: 1.25rem 0 1.65rem; }
 
 .figure-image {
